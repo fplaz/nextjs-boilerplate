@@ -90,6 +90,18 @@ supabase migration up      # local
 supabase db push           # remote
 ```
 
+## Deployment
+
+Pushing to `main` triggers a GitHub Action that deploys database migrations to Supabase via `supabase db push`.
+
+**Required GitHub secrets** (Settings → Secrets and variables → Actions):
+
+| Secret | Description |
+|--------|-------------|
+| `SUPABASE_ACCESS_TOKEN` | [Personal access token](https://supabase.com/dashboard/account/tokens) from the Supabase dashboard |
+| `SUPABASE_DB_PASSWORD` | Database password for your Supabase project |
+| `SUPABASE_PROJECT_REF` | Project reference (from the URL: `https://app.supabase.com/project/<ref>`) |
+
 ## Scripts
 
 | Command | Description |
