@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useState, Suspense } from "react";
 import { signIn } from "@/app/actions/auth";
 import { FormMessage } from "@/components/form-message";
@@ -22,6 +23,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 type Step = "email" | "sign-in" | "magic-link-sent";
 
 function LoginForm() {
+  const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,6 +32,8 @@ function LoginForm() {
   const [checking, setChecking] = useState(false);
   const [sendingMagicLink, setSendingMagicLink] = useState(false);
   const [error, setError] = useState("");
+  const redirectTo = searchParams.get("redirect_to") ?? "/dashboard";
+  const inviteToken = searchParams.get("invite_token") ?? "";
 
   const emailValid = EMAIL_REGEX.test(email);
   const showEmailError = emailTouched && email.length > 0 && !emailValid;
@@ -66,7 +70,7 @@ function LoginForm() {
       const res = await fetch("/api/auth/magic-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, redirectTo }),
       });
       const json = await res.json();
       if (json.error) {
@@ -134,7 +138,11 @@ function LoginForm() {
               <p className="text-center text-sm text-muted-foreground">
                 Don&apos;t have an account?{" "}
                 <Link
-                  href="/signup"
+                  href={`/signup?redirect_to=${encodeURIComponent(redirectTo)}${
+                    inviteToken
+                      ? `&invite_token=${encodeURIComponent(inviteToken)}`
+                      : ""
+                  }`}
                   className="font-medium text-primary underline-offset-4 hover:underline"
                 >
                   Sign Up
@@ -167,6 +175,7 @@ function LoginForm() {
               {hasPassword && (
                 <form className="grid gap-4">
                   <input type="hidden" name="email" value={email} />
+                  <input type="hidden" name="redirect_to" value={redirectTo} />
                   <div className="grid gap-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="password">Password</Label>
@@ -219,7 +228,11 @@ function LoginForm() {
               <p className="text-center text-sm text-muted-foreground">
                 Don&apos;t have an account?{" "}
                 <Link
-                  href="/signup"
+                  href={`/signup?redirect_to=${encodeURIComponent(redirectTo)}${
+                    inviteToken
+                      ? `&invite_token=${encodeURIComponent(inviteToken)}`
+                      : ""
+                  }`}
                   className="font-medium text-primary underline-offset-4 hover:underline"
                 >
                   Sign Up

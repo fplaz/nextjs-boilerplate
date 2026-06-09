@@ -15,8 +15,12 @@ import { Loader2 } from "lucide-react";
 
 export function BillingCard({
   subscription,
+  canManageBilling,
+  workspaceSlug,
 }: {
   subscription: SubscriptionRow | null;
+  canManageBilling: boolean;
+  workspaceSlug: string;
 }) {
   const { openUpdatePayment } = usePaddle();
   const [loading, setLoading] = useState(false);
@@ -31,9 +35,12 @@ export function BillingCard({
   async function handleUpdatePayment() {
     setLoading(true);
     try {
-      const res = await fetch("/api/subscriptions/update-payment-method", {
+      const res = await fetch(
+        `/api/subscriptions/update-payment-method?slug=${encodeURIComponent(workspaceSlug)}`,
+        {
         method: "POST",
-      });
+        }
+      );
       const json = await res.json();
       if (!res.ok || json.error) {
         console.error("Failed to get update transaction:", json.error);
@@ -58,10 +65,10 @@ export function BillingCard({
           className="cursor-pointer w-full"
           variant="outline"
           onClick={handleUpdatePayment}
-          disabled={loading}
+          disabled={loading || !canManageBilling}
         >
           {loading && <Loader2 className="animate-spin" />}
-          Update Payment Method
+          {canManageBilling ? "Update Payment Method" : "Only the owner can update payment"}
         </Button>
       </CardContent>
     </Card>

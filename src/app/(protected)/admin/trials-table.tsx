@@ -11,7 +11,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { AdminTrial } from "@/domain/admin/admin.service";
 
-type TrialWithEmail = AdminTrial & { email: string };
+type TrialWithWorkspace = AdminTrial & {
+  workspace_name: string;
+  workspace_slug: string;
+};
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   active: "default",
@@ -19,12 +22,13 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive" | "o
   converted: "secondary",
 };
 
-export function TrialsTable({ trials }: { trials: TrialWithEmail[] }) {
+export function TrialsTable({ trials }: { trials: TrialWithWorkspace[] }) {
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>User</TableHead>
+          <TableHead>Workspace</TableHead>
+          <TableHead>Slug</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Plan</TableHead>
           <TableHead>Starts At</TableHead>
@@ -33,8 +37,9 @@ export function TrialsTable({ trials }: { trials: TrialWithEmail[] }) {
       </TableHeader>
       <TableBody>
         {trials.map((t) => (
-          <TableRow key={t.user_id}>
-            <TableCell>{t.email}</TableCell>
+          <TableRow key={t.workspace_id}>
+            <TableCell>{t.workspace_name}</TableCell>
+            <TableCell className="font-mono text-sm">{t.workspace_slug}</TableCell>
             <TableCell>
               <Badge variant={statusVariant[t.status] ?? "outline"}>
                 {t.status}

@@ -128,6 +128,26 @@ export async function deleteAccount(
   adminClient: SupabaseClient,
   userId: string
 ): Promise<ServiceResult> {
+  const { data: ownedWorkspace, error: ownedWorkspaceError } = await adminClient
+    .from("workspaces")
+    .select("id")
+    .eq("owner_user_id", userId)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+
+  if (ownedWorkspaceError) {
+    return { data: null, error: ownedWorkspaceError.message };
+  }
+
+  if (ownedWorkspace) {
+    return {
+      data: null,
+      error:
+        "Transfer ownership or delete your workspace before deleting your account.",
+    };
+  }
+
   const { error } = await adminClient.auth.admin.deleteUser(userId);
   if (error) return { data: null, error: error.message };
 

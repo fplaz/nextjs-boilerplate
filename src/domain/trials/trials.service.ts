@@ -15,7 +15,7 @@ export async function createTrial(
 
     const { data, error } = await adminClient
       .from("trials")
-      .insert({ user_id: parsed.user_id })
+      .insert({ workspace_id: parsed.workspace_id })
       .select("*")
       .single();
 
@@ -29,14 +29,14 @@ export async function createTrial(
   }
 }
 
-export async function getUserTrial(
+export async function getWorkspaceTrial(
   supabase: SupabaseClient,
-  userId: string
+  workspaceId: string
 ): Promise<ServiceResult<TrialRow | null>> {
   const { data, error } = await supabase
     .from("trials")
     .select("*")
-    .eq("user_id", userId)
+    .eq("workspace_id", workspaceId)
     .maybeSingle();
 
   if (error) return { data: null, error: error.message };
@@ -45,12 +45,12 @@ export async function getUserTrial(
 
 export async function expireTrial(
   adminClient: SupabaseClient,
-  userId: string
+  workspaceId: string
 ): Promise<ServiceResult> {
   const { error } = await adminClient
     .from("trials")
     .update({ status: "expired", updated_at: new Date().toISOString() })
-    .eq("user_id", userId)
+    .eq("workspace_id", workspaceId)
     .eq("status", "active");
 
   if (error) return { data: null, error: error.message };
@@ -59,12 +59,12 @@ export async function expireTrial(
 
 export async function convertTrial(
   adminClient: SupabaseClient,
-  userId: string
+  workspaceId: string
 ): Promise<ServiceResult> {
   const { error } = await adminClient
     .from("trials")
     .update({ status: "converted", updated_at: new Date().toISOString() })
-    .eq("user_id", userId)
+    .eq("workspace_id", workspaceId)
     .eq("status", "active");
 
   if (error) return { data: null, error: error.message };
@@ -109,12 +109,12 @@ export async function getTrialsNeedingOneDayWarning(
 
 export async function markTwoDayWarningSent(
   adminClient: SupabaseClient,
-  userId: string
+  workspaceId: string
 ): Promise<ServiceResult> {
   const { error } = await adminClient
     .from("trials")
     .update({ two_day_warning_sent: true, updated_at: new Date().toISOString() })
-    .eq("user_id", userId);
+    .eq("workspace_id", workspaceId);
 
   if (error) return { data: null, error: error.message };
   return { data: null, error: null };
@@ -122,12 +122,12 @@ export async function markTwoDayWarningSent(
 
 export async function markOneDayWarningSent(
   adminClient: SupabaseClient,
-  userId: string
+  workspaceId: string
 ): Promise<ServiceResult> {
   const { error } = await adminClient
     .from("trials")
     .update({ one_day_warning_sent: true, updated_at: new Date().toISOString() })
-    .eq("user_id", userId);
+    .eq("workspace_id", workspaceId);
 
   if (error) return { data: null, error: error.message };
   return { data: null, error: null };

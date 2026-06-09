@@ -11,7 +11,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { AdminSubscription } from "@/domain/admin/admin.service";
 
-type SubscriptionWithEmail = AdminSubscription & { email: string };
+type SubscriptionWithWorkspace = AdminSubscription & {
+  workspace_name: string;
+  workspace_slug: string;
+  billing_owner_email: string;
+};
 
 const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   active: "default",
@@ -24,13 +28,15 @@ const statusVariant: Record<string, "default" | "secondary" | "destructive" | "o
 export function SubscriptionsTable({
   subscriptions,
 }: {
-  subscriptions: SubscriptionWithEmail[];
+  subscriptions: SubscriptionWithWorkspace[];
 }) {
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>User</TableHead>
+          <TableHead>Workspace</TableHead>
+          <TableHead>Slug</TableHead>
+          <TableHead>Billing Owner</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Plan Name</TableHead>
           <TableHead>Period Start</TableHead>
@@ -40,7 +46,9 @@ export function SubscriptionsTable({
       <TableBody>
         {subscriptions.map((s) => (
           <TableRow key={s.id}>
-            <TableCell>{s.email}</TableCell>
+            <TableCell>{s.workspace_name}</TableCell>
+            <TableCell className="font-mono text-sm">{s.workspace_slug}</TableCell>
+            <TableCell>{s.billing_owner_email || "—"}</TableCell>
             <TableCell>
               <Badge variant={statusVariant[s.status] ?? "outline"}>
                 {s.status}

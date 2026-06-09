@@ -13,7 +13,12 @@ import { useRouter } from "next/navigation";
 import { initializePaddle, type Paddle } from "@paddle/paddle-js";
 
 interface PaddleContextValue {
-  openCheckout: (priceId: string, userId: string, email: string) => void;
+  openCheckout: (
+    priceId: string,
+    workspaceId: string,
+    billingOwnerUserId: string,
+    email: string
+  ) => void;
   openUpdatePayment: (subscriptionId: string) => void;
   checkoutCompleted: boolean;
   ready: boolean;
@@ -71,11 +76,19 @@ export function PaddleProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const openCheckout = useCallback(
-    (priceId: string, userId: string, email: string) => {
+    (
+      priceId: string,
+      workspaceId: string,
+      billingOwnerUserId: string,
+      email: string
+    ) => {
       paddle?.Checkout.open({
         items: [{ priceId, quantity: 1 }],
         customer: { email },
-        customData: { user_id: userId },
+        customData: {
+          workspace_id: workspaceId,
+          billing_owner_user_id: billingOwnerUserId,
+        },
       });
     },
     [paddle]

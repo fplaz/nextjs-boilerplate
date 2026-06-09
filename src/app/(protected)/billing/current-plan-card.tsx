@@ -31,7 +31,7 @@ import {
 } from "@/components/pricing-plans";
 import type {
   SubscriptionRow,
-  UserBillingState,
+  WorkspaceBillingState,
 } from "@/domain/subscriptions/subscriptions.schema";
 
 interface PriceIds {
@@ -77,14 +77,20 @@ function formatBillingInterval(interval: string | null): string {
 export function CurrentPlanCard({
   subscription,
   billingState,
-  userId,
+  workspaceId,
+  billingOwnerUserId,
   userEmail,
+  workspaceSlug,
+  canManageBilling,
   priceIds,
 }: {
   subscription: SubscriptionRow | null;
-  billingState: UserBillingState;
-  userId: string;
+  billingState: WorkspaceBillingState;
+  workspaceId: string;
+  billingOwnerUserId: string;
   userEmail: string;
+  workspaceSlug: string;
+  canManageBilling: boolean;
   priceIds: PriceIds;
 }) {
   const router = useRouter();
@@ -122,7 +128,7 @@ export function CurrentPlanCard({
 
   function handleSelectPlan(priceId: string) {
     setSubscribeOpen(false);
-    openCheckout(priceId, userId, userEmail);
+    openCheckout(priceId, workspaceId, billingOwnerUserId, userEmail);
   }
 
   async function handleCancel() {
@@ -130,7 +136,7 @@ export function CurrentPlanCard({
     setCancelError(null);
 
     try {
-      const res = await fetch("/api/subscriptions/cancel", { method: "POST" });
+      const res = await fetch(`/api/subscriptions/cancel?slug=${encodeURIComponent(workspaceSlug)}`, { method: "POST" });
       const body = await res.json();
 
       if (!res.ok) {
@@ -158,6 +164,10 @@ export function CurrentPlanCard({
     try {
       const res = await fetch("/api/subscriptions/reactivate", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ slug: workspaceSlug }),
       });
       const body = await res.json();
 
@@ -208,6 +218,7 @@ export function CurrentPlanCard({
             {showSubscribe && (
               <Button
                 className="mt-4 w-full cursor-pointer"
+                disabled={!canManageBilling}
                 onClick={() => setSubscribeOpen(true)}
               >
                 Subscribe
@@ -223,6 +234,7 @@ export function CurrentPlanCard({
           priceIds={priceIds}
           onSelectPlan={handleSelectPlan}
           hasActiveSubscription={hasActiveSubscription}
+          canManageBilling={canManageBilling}
         />
         {checkoutCompleted && <ActionSpinner message="Applying your subscription..." />}
       </>
@@ -247,6 +259,7 @@ export function CurrentPlanCard({
             {showSubscribe && (
               <Button
                 className="mt-4 w-full cursor-pointer"
+                disabled={!canManageBilling}
                 onClick={() => setSubscribeOpen(true)}
               >
                 Subscribe
@@ -262,6 +275,7 @@ export function CurrentPlanCard({
           priceIds={priceIds}
           onSelectPlan={handleSelectPlan}
           hasActiveSubscription={hasActiveSubscription}
+          canManageBilling={canManageBilling}
         />
         {checkoutCompleted && <ActionSpinner message="Applying your subscription..." />}
       </>
@@ -341,6 +355,7 @@ export function CurrentPlanCard({
             {showSubscribe && (
               <Button
                 className="cursor-pointer w-full"
+                disabled={!canManageBilling}
                 onClick={() => setSubscribeOpen(true)}
               >
                 Subscribe
@@ -350,6 +365,7 @@ export function CurrentPlanCard({
               <Button
                 variant="outline"
                 className="cursor-pointer w-full"
+                disabled={!canManageBilling}
                 onClick={() => {
                   setCancelConfirmText("");
                   setCancelError(null);
@@ -362,6 +378,7 @@ export function CurrentPlanCard({
             {hasPendingCancellation && (
               <Button
                 className="cursor-pointer w-full"
+                disabled={!canManageBilling}
                 onClick={() => {
                   setReactivateError(null);
                   setReactivateOpen(true);
@@ -382,6 +399,7 @@ export function CurrentPlanCard({
         priceIds={priceIds}
         onSelectPlan={handleSelectPlan}
         hasActiveSubscription={hasActiveSubscription}
+        canManageBilling={canManageBilling}
       />
 
       {checkoutCompleted && <ActionSpinner message="Applying your subscription..." />}
@@ -511,6 +529,7 @@ function SubscribeDialog({
   priceIds,
   onSelectPlan,
   hasActiveSubscription,
+  canManageBilling,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -519,6 +538,7 @@ function SubscribeDialog({
   priceIds: PriceIds;
   onSelectPlan: (priceId: string) => void;
   hasActiveSubscription: boolean;
+  canManageBilling: boolean;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -547,6 +567,11 @@ function SubscribeDialog({
               subscribing to a new plan.
             </p>
           )}
+          {!canManageBilling && (
+            <p className="text-sm text-muted-foreground">
+              Only the workspace owner can change billing.
+            </p>
+          )}
 
           <div className="flex justify-center">
             <BillingIntervalTabs
@@ -565,7 +590,7 @@ function SubscribeDialog({
                   <Button
                     className="w-full cursor-pointer"
                     variant={plan.highlighted ? "default" : "outline"}
-                    disabled={hasActiveSubscription}
+                    disabled={hasActiveSubscription || !canManageBilling}
                     onClick={() =>
                       onSelectPlan(
                         getPriceId(priceIds, plan.priceKey, interval)

@@ -22,6 +22,7 @@ export const signUpInput = z.object({
       SLUG_REGEX,
       "Slug can only contain lowercase letters, numbers, and hyphens"
     ),
+  inviteToken: z.string().optional(),
 });
 
 export const signInInput = z.object({
@@ -55,5 +56,6 @@ export type CheckEmailInput = z.infer<typeof checkEmailInput>;
 
 export const magicLinkInput = z.object({
   email: z.string().email(),
+  redirectTo: z.string().optional(),
 });
 export type MagicLinkInput = z.infer<typeof magicLinkInput>;

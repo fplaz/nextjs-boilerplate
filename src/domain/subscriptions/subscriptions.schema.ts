@@ -12,7 +12,8 @@ export type SubscriptionStatus = z.infer<typeof subscriptionStatus>;
 
 export const subscriptionRow = z.object({
   id: z.number().int(),
-  user_id: z.string().uuid(),
+  workspace_id: z.string().uuid(),
+  billing_owner_user_id: z.string().uuid().nullable(),
   paddle_subscription_id: z.string(),
   paddle_customer_id: z.string().nullable(),
   status: subscriptionStatus,
@@ -32,7 +33,8 @@ export const subscriptionRow = z.object({
 export type SubscriptionRow = z.infer<typeof subscriptionRow>;
 
 export const upsertSubscriptionInput = z.object({
-  user_id: z.string().uuid(),
+  workspace_id: z.string().uuid(),
+  billing_owner_user_id: z.string().uuid().nullable().optional(),
   paddle_subscription_id: z.string(),
   paddle_customer_id: z.string().nullable().optional(),
   status: subscriptionStatus,
@@ -49,7 +51,7 @@ export const upsertSubscriptionInput = z.object({
 
 export type UpsertSubscriptionInput = z.infer<typeof upsertSubscriptionInput>;
 
-export interface UserBillingState {
+export interface WorkspaceBillingState {
   status: SubscriptionStatus | "none";
   trialEnd: string | null;
   planName: string | null;

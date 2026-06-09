@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { AccountSlugSection } from "./account-slug-section";
 import { UpdateNameForm } from "./update-name-form";
 import { ChangeEmailForm } from "./change-email-form";
 import { ChangePasswordForm } from "./change-password-form";
@@ -22,7 +21,7 @@ export default async function AccountPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("account_slug, first_name, last_name")
+    .select("first_name, last_name")
     .eq("user_id", user.id)
     .single();
 
@@ -55,10 +54,6 @@ export default async function AccountPage() {
       <Suspense>
         <AccountToast />
       </Suspense>
-
-      <AccountSlugSection accountSlug={profile?.account_slug ?? ""} />
-
-      <Separator />
 
       <UpdateNameForm
         firstName={profile?.first_name ?? ""}

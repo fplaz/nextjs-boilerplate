@@ -109,3 +109,21 @@ ${footer("You're receiving this email because your trial on LaunchKit has ended.
 
   return layout("Your trial has ended", content);
 }
+
+export function workspaceInviteHtml(args: {
+  inviterEmail: string;
+  workspaceName: string;
+  inviteUrl: string;
+}): string {
+  const content = `          <tr>
+            <td style="padding: 32px 32px 0 32px; text-align: center;">
+              ${heading(`You're invited to join ${args.workspaceName}`)}
+              ${paragraph(`${args.inviterEmail} invited you to join the ${args.workspaceName} workspace on LaunchKit.`)}
+              ${paragraph("Use the link below to accept the invite. If you do not have an account yet, sign up with this same email address first.")}
+            </td>
+          </tr>
+${ctaButton("Accept Invite", args.inviteUrl)}
+${footer("You're receiving this email because someone invited you to a workspace on LaunchKit.")}`;
+
+  return layout(`Join ${args.workspaceName}`, content);
+}

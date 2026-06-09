@@ -5,6 +5,7 @@ import {
   trialTwoDayWarningHtml,
   trialOneDayWarningHtml,
   trialExpiredHtml,
+  workspaceInviteHtml,
 } from "./email.templates";
 
 type ServiceResult<T = null> =
@@ -80,5 +81,22 @@ export async function sendTrialExpired(
     email,
     "Your trial has ended",
     trialExpiredHtml(firstName)
+  );
+}
+
+export async function sendWorkspaceInviteEmail(args: {
+  email: string;
+  inviterEmail: string;
+  workspaceName: string;
+  inviteUrl: string;
+}): Promise<ServiceResult> {
+  return sendEmail(
+    args.email,
+    `You're invited to ${args.workspaceName}`,
+    workspaceInviteHtml({
+      inviterEmail: args.inviterEmail,
+      workspaceName: args.workspaceName,
+      inviteUrl: args.inviteUrl,
+    })
   );
 }

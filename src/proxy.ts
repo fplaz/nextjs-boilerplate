@@ -27,7 +27,11 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  const skipAuth = pathname === "/" || pathname === "/terms" || pathname.startsWith("/auth/");
+  const skipAuth =
+    pathname === "/" ||
+    pathname === "/terms" ||
+    pathname.startsWith("/auth/") ||
+    pathname.startsWith("/invite/accept");
 
   if (skipAuth) {
     return supabaseResponse;

@@ -22,13 +22,18 @@ export async function signUp(formData: FormData) {
     firstName: formData.get("first_name") as string,
     lastName: formData.get("last_name") as string,
     accountSlug: formData.get("account_slug") as string,
+    inviteToken: ((formData.get("invite_token") as string) || undefined),
   });
 
   if (result.error !== null) {
     return redirect(`/signup?error=${encodeURIComponent(result.error)}`);
   }
 
-  return redirect("/dashboard");
+  const inviteToken = (formData.get("invite_token") as string) || "";
+  const redirectTo = inviteToken
+    ? "/dashboard"
+    : (formData.get("redirect_to") as string) || "/dashboard";
+  return redirect(redirectTo);
 }
 
 export async function signIn(formData: FormData) {
@@ -44,7 +49,8 @@ export async function signIn(formData: FormData) {
     return redirect(`/login?error=${encodeURIComponent(result.error)}`);
   }
 
-  return redirect("/dashboard");
+  const redirectTo = (formData.get("redirect_to") as string) || "/dashboard";
+  return redirect(redirectTo);
 }
 
 export async function signOut() {

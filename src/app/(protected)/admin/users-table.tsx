@@ -15,6 +15,7 @@ import type { AdminProfile } from "@/domain/admin/admin.service";
 
 type ProfileWithEmail = AdminProfile & {
   email: string;
+  default_workspace_slug: string;
   subscription_name: string;
   trial_status: string;
   trial_ends_at: string;
@@ -91,7 +92,7 @@ export function UsersTable({ profiles }: { profiles: ProfileWithEmail[] }) {
       <TableHeader>
         <TableRow>
           <TableHead>Email</TableHead>
-          <TableHead className="max-w-48">Account Slug</TableHead>
+          <TableHead className="max-w-48">Default Workspace</TableHead>
           <SortableHead
             label="Trial Status"
             sortKey="trial_status"
@@ -114,17 +115,19 @@ export function UsersTable({ profiles }: { profiles: ProfileWithEmail[] }) {
             onSort={handleSort}
           />
           <TableHead>Created At</TableHead>
+          <TableHead>Platform Role</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {sorted.map((p) => (
           <TableRow key={p.user_id}>
             <TableCell>{p.email}</TableCell>
-            <TableCell className="max-w-48 truncate font-mono text-sm">{p.account_slug}</TableCell>
+            <TableCell className="max-w-48 truncate font-mono text-sm">{p.default_workspace_slug || "—"}</TableCell>
             <TableCell>{p.trial_status || "—"}</TableCell>
             <TableCell>{p.trial_ends_at ? new Date(p.trial_ends_at).toLocaleDateString() : "—"}</TableCell>
             <TableCell>{p.subscription_name || "Not subscribed"}</TableCell>
             <TableCell>{new Date(p.created_at).toLocaleDateString()}</TableCell>
+            <TableCell>{p.platform_role}</TableCell>
           </TableRow>
         ))}
       </TableBody>

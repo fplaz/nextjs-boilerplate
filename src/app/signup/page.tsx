@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { signUp } from "@/app/actions/auth";
 import { FormMessage } from "@/components/form-message";
@@ -22,6 +23,7 @@ import { Turnstile } from "@marsidev/react-turnstile";
 const SLUG_CHAR_REGEX = /[^a-z0-9-]/g;
 
 function SignUpForm() {
+  const searchParams = useSearchParams();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -29,6 +31,8 @@ function SignUpForm() {
   const [password, setPassword] = useState("");
 
   const [turnstileToken, setTurnstileToken] = useState("");
+  const inviteToken = searchParams.get("invite_token") ?? "";
+  const redirectTo = searchParams.get("redirect_to") ?? "/dashboard";
 
   const [accountSlug, setAccountSlug] = useState("");
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
@@ -116,6 +120,8 @@ function SignUpForm() {
             }}
           >
             <FormMessage />
+            <input type="hidden" name="invite_token" value={inviteToken} />
+            <input type="hidden" name="redirect_to" value={redirectTo} />
             <div className="grid gap-2">
               <Label htmlFor="first_name">First Name</Label>
               <Input
@@ -251,7 +257,7 @@ function SignUpForm() {
             <p className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}
               <Link
-                href="/login"
+                href={`/login?redirect_to=${encodeURIComponent(redirectTo)}`}
                 className="font-medium text-primary underline-offset-4 hover:underline"
               >
                 Sign In

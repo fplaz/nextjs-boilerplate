@@ -1,12 +1,11 @@
--- Create profiles table
 create table public.profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  account_slug text not null unique,
   first_name text,
   last_name text,
-  role text not null default 'user',
-  created_at timestamptz default now() not null,
-  updated_at timestamptz default now() not null
+  platform_role text not null default 'user',
+  default_workspace_id uuid references public.workspaces(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 alter table public.profiles enable row level security;

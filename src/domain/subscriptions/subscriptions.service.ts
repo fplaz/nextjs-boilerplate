@@ -4,22 +4,22 @@ import {
   upsertSubscriptionInput,
   type SubscriptionRow,
   type UpsertSubscriptionInput,
-  type UserBillingState,
+  type WorkspaceBillingState,
 } from "./subscriptions.schema";
-import { getUserTrial } from "@/domain/trials/trials.service";
+import { getWorkspaceTrial } from "@/domain/trials/trials.service";
 
 type ServiceResult<T = null> =
   | { data: T; error: null }
   | { data: null; error: string };
 
-export async function getUserSubscription(
+export async function getWorkspaceSubscription(
   supabase: SupabaseClient,
-  userId: string
+  workspaceId: string
 ): Promise<ServiceResult<SubscriptionRow | null>> {
   const { data: activeSub, error: activeError } = await supabase
     .from("subscriptions")
     .select("*")
-    .eq("user_id", userId)
+    .eq("workspace_id", workspaceId)
     .in("status", ["active", "trialing"])
     .limit(1)
     .maybeSingle();
@@ -30,7 +30,7 @@ export async function getUserSubscription(
   const { data: fallbackSub, error: fallbackError } = await supabase
     .from("subscriptions")
     .select("*")
-    .eq("user_id", userId)
+    .eq("workspace_id", workspaceId)
     .in("status", ["canceled", "past_due"])
     .order("updated_at", { ascending: false })
     .limit(1)
@@ -69,11 +69,11 @@ export async function upsertSubscription(
   }
 }
 
-export async function getUserBillingState(
+export async function getWorkspaceBillingState(
   supabase: SupabaseClient,
-  userId: string
-): Promise<ServiceResult<UserBillingState>> {
-  const subResult = await getUserSubscription(supabase, userId);
+  workspaceId: string
+): Promise<ServiceResult<WorkspaceBillingState>> {
+  const subResult = await getWorkspaceSubscription(supabase, workspaceId);
   if (subResult.error !== null) return { data: null, error: subResult.error };
 
   const subscription = subResult.data;
@@ -89,7 +89,7 @@ export async function getUserBillingState(
     };
   }
 
-  const trialResult = await getUserTrial(supabase, userId);
+  const trialResult = await getWorkspaceTrial(supabase, workspaceId);
   if (trialResult.error === null && trialResult.data?.status === "active") {
     return {
       data: {

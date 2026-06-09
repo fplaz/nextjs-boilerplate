@@ -22,9 +22,12 @@ type SubscriptionEvent =
   | SubscriptionCanceledEvent
   | SubscriptionPastDueEvent;
 
-function extractUserId(customData: Record<string, unknown> | null | undefined): string | null {
+function extractString(
+  customData: Record<string, unknown> | null | undefined,
+  key: string
+): string | null {
   if (!customData) return null;
-  const val = customData.user_id;
+  const val = customData[key];
   return typeof val === "string" ? val : null;
 }
 
@@ -70,17 +73,23 @@ export async function POST(request: NextRequest) {
       case EventName.SubscriptionUpdated:
       case EventName.SubscriptionActivated: {
         const sub = (event as SubscriptionEvent).data;
-        const userId = extractUserId(sub.customData as Record<string, unknown> | null);
-        if (!userId) {
-          console.warn("Webhook: missing user_id in customData", { eventType: event.eventType, subscriptionId: sub.id });
-          return NextResponse.json({ error: "Missing user_id in subscription customData" }, { status: 200 });
+        const customData = sub.customData as Record<string, unknown> | null;
+        const workspaceId = extractString(customData, "workspace_id");
+        const billingOwnerUserId = extractString(
+          customData,
+          "billing_owner_user_id"
+        );
+        if (!workspaceId) {
+          console.warn("Webhook: missing workspace_id in customData", { eventType: event.eventType, subscriptionId: sub.id });
+          return NextResponse.json({ error: "Missing workspace_id in subscription customData" }, { status: 200 });
         }
 
         const firstItem = sub.items?.[0];
         const status = mapStatus(sub.status ?? "active");
 
         await upsertSubscription(adminClient, {
-          user_id: userId,
+          workspace_id: workspaceId,
+          billing_owner_user_id: billingOwnerUserId,
           paddle_subscription_id: sub.id,
           paddle_customer_id: sub.customerId ?? null,
           status,
@@ -101,7 +110,7 @@ export async function POST(request: NextRequest) {
 
         // Convert local trial when a real subscription is created
         if (event.eventType === EventName.SubscriptionCreated) {
-          await convertTrial(adminClient, userId);
+          await convertTrial(adminClient, workspaceId);
         }
 
         break;
@@ -109,14 +118,20 @@ export async function POST(request: NextRequest) {
 
       case EventName.SubscriptionCanceled: {
         const sub = (event as SubscriptionCanceledEvent).data;
-        const userId = extractUserId(sub.customData as Record<string, unknown> | null);
-        if (!userId) {
-          console.warn("Webhook: missing user_id in customData", { eventType: event.eventType, subscriptionId: sub.id });
-          return NextResponse.json({ error: "Missing user_id in subscription customData" }, { status: 200 });
+        const customData = sub.customData as Record<string, unknown> | null;
+        const workspaceId = extractString(customData, "workspace_id");
+        const billingOwnerUserId = extractString(
+          customData,
+          "billing_owner_user_id"
+        );
+        if (!workspaceId) {
+          console.warn("Webhook: missing workspace_id in customData", { eventType: event.eventType, subscriptionId: sub.id });
+          return NextResponse.json({ error: "Missing workspace_id in subscription customData" }, { status: 200 });
         }
 
         await upsertSubscription(adminClient, {
-          user_id: userId,
+          workspace_id: workspaceId,
+          billing_owner_user_id: billingOwnerUserId,
           paddle_subscription_id: sub.id,
           paddle_customer_id: sub.customerId ?? null,
           status: "canceled",
@@ -128,14 +143,20 @@ export async function POST(request: NextRequest) {
 
       case EventName.SubscriptionPastDue: {
         const sub = (event as SubscriptionPastDueEvent).data;
-        const userId = extractUserId(sub.customData as Record<string, unknown> | null);
-        if (!userId) {
-          console.warn("Webhook: missing user_id in customData", { eventType: event.eventType, subscriptionId: sub.id });
-          return NextResponse.json({ error: "Missing user_id in subscription customData" }, { status: 200 });
+        const customData = sub.customData as Record<string, unknown> | null;
+        const workspaceId = extractString(customData, "workspace_id");
+        const billingOwnerUserId = extractString(
+          customData,
+          "billing_owner_user_id"
+        );
+        if (!workspaceId) {
+          console.warn("Webhook: missing workspace_id in customData", { eventType: event.eventType, subscriptionId: sub.id });
+          return NextResponse.json({ error: "Missing workspace_id in subscription customData" }, { status: 200 });
         }
 
         await upsertSubscription(adminClient, {
-          user_id: userId,
+          workspace_id: workspaceId,
+          billing_owner_user_id: billingOwnerUserId,
           paddle_subscription_id: sub.id,
           paddle_customer_id: sub.customerId ?? null,
           status: "past_due",

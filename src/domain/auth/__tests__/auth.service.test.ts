@@ -1,9 +1,15 @@
 import { describe, it, expect, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-// Mock the Paddle module so it doesn't try to initialize the SDK
-vi.mock("@/lib/paddle", () => ({
-  createTrialSubscription: vi.fn().mockResolvedValue(undefined),
+vi.mock("@/domain/workspaces/workspace.service", () => ({
+  createWorkspace: vi.fn().mockResolvedValue({
+    data: { id: "w1", slug: "johns-company" },
+    error: null,
+  }),
+  acceptWorkspaceInvite: vi.fn().mockResolvedValue({
+    data: { id: "w1", slug: "johns-company" },
+    error: null,
+  }),
 }));
 
 import {
@@ -23,6 +29,7 @@ function createChainMock(result: { data: unknown; error: unknown }) {
   chain.upsert = vi.fn().mockResolvedValue(result);
   chain.select = vi.fn().mockReturnValue(chain);
   chain.eq = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
   chain.single = vi.fn().mockResolvedValue(result);
   chain.maybeSingle = vi.fn().mockResolvedValue(result);
   return chain;
@@ -35,11 +42,12 @@ function mockSupabase(opts?: {
 }) {
   const sb = {
     from: vi.fn((table: string) => {
-      if (table === "profiles") {
+      if (table === "profiles" || table === "workspaces") {
         // Default: slug check returns null (available), profile upsert succeeds
         const chain: Record<string, unknown> = {};
         chain.select = vi.fn().mockReturnValue(chain);
         chain.eq = vi.fn().mockReturnValue(chain);
+        chain.limit = vi.fn().mockReturnValue(chain);
         chain.maybeSingle = vi.fn().mockResolvedValue(
           opts?.slugCheckResult ?? { data: null, error: null }
         );
@@ -111,10 +119,11 @@ describe("signUp", () => {
 
     const sb = {
       from: vi.fn((table: string) => {
-        if (table === "profiles") {
+        if (table === "profiles" || table === "workspaces") {
           const chain: Record<string, unknown> = {};
           chain.select = vi.fn().mockReturnValue(chain);
           chain.eq = vi.fn().mockReturnValue(chain);
+          chain.limit = vi.fn().mockReturnValue(chain);
           chain.maybeSingle = vi.fn().mockResolvedValue(
             opts?.slugCheckResult ?? { data: null, error: null }
           );
@@ -212,11 +221,11 @@ describe("signUp", () => {
   it("returns error when account slug is already taken", async () => {
     const sb = mockSignUpSupabase();
     const { sb: admin } = mockSignUpAdmin({
-      slugCheckResult: { data: { user_id: "other-user" }, error: null },
+      slugCheckResult: { data: { id: "workspace-1" }, error: null },
     });
 
     const result = await signUp(sb, admin, validSignUp);
-    expect(result.error).toBe("This account slug is already in use");
+    expect(result.error).toBe("This workspace slug is already in use");
     expect(result.data).toBeNull();
   });
 

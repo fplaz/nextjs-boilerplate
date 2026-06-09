@@ -11,9 +11,9 @@ export async function GET(request: NextRequest) {
 
   const adminClient = createAdminClient();
   const { data } = await adminClient
-    .from("profiles")
-    .select("user_id")
-    .eq("account_slug", slug)
+    .from("workspaces")
+    .select("id")
+    .eq("slug", slug)
     .maybeSingle();
 
   return NextResponse.json({ available: !data });

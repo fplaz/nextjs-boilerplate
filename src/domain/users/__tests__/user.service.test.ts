@@ -15,8 +15,10 @@ function createChainMock(result: { data: unknown; error: unknown }) {
   const chain: Record<string, unknown> = {};
   chain.update = vi.fn().mockReturnValue(chain);
   chain.eq = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
   chain.select = vi.fn().mockReturnValue(chain);
   chain.single = vi.fn().mockResolvedValue(result);
+  chain.maybeSingle = vi.fn().mockResolvedValue(result);
   // Allow chain to be awaited directly (for queries without .single())
   chain.then = (
     resolve: (v: unknown) => unknown,
@@ -158,6 +160,16 @@ describe("deleteAccount", () => {
     const admin = mockSupabase();
     const result = await deleteAccount(sb, admin, "user-1");
     expect(result.error).toBeNull();
+  });
+
+  it("blocks deleting an owned workspace account", async () => {
+    const sb = mockSupabase();
+    const admin = mockSupabase({
+      dbResult: { data: { id: "w1" }, error: null },
+    });
+
+    const result = await deleteAccount(sb, admin, "user-1");
+    expect(result.error).toContain("Transfer ownership");
   });
 
   it("returns error on admin failure", async () => {

@@ -1,6 +1,7 @@
 create table public.subscriptions (
   id bigint generated always as identity primary key,
-  user_id uuid not null references auth.users(id) on delete cascade,
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  billing_owner_user_id uuid references auth.users(id) on delete set null,
   paddle_subscription_id text unique not null,
   paddle_customer_id text,
   status text not null default 'trialing',
@@ -17,11 +18,19 @@ create table public.subscriptions (
   updated_at timestamptz default now() not null
 );
 
-create index idx_subscriptions_user_id on public.subscriptions(user_id);
+create index idx_subscriptions_workspace_id on public.subscriptions(workspace_id);
 
 alter table public.subscriptions enable row level security;
 
 create policy "Users can read own subscription"
   on public.subscriptions for select
   to authenticated
-  using (auth.uid() = user_id);
+  using (
+    exists (
+      select 1
+      from public.workspace_memberships
+      where workspace_memberships.workspace_id = subscriptions.workspace_id
+        and workspace_memberships.user_id = auth.uid()
+        and workspace_memberships.status = 'active'
+    )
+  );

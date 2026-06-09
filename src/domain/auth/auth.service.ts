@@ -12,9 +12,12 @@ import {
   type ResetPasswordInput,
   type MagicLinkInput,
 } from "./auth.schema";
-import { createTrial } from "@/domain/trials/trials.service";
 import { sendWelcomeEmail } from "@/domain/email/email.service";
 import { sendTelegramMessage } from "@/lib/telegram";
+import {
+  acceptWorkspaceInvite,
+  createWorkspace,
+} from "@/domain/workspaces/workspace.service";
 
 type ServiceResult<T = null> =
   | { data: T; error: null }
@@ -28,18 +31,20 @@ export async function signUp(
   try {
     const parsed = signUpInput.parse(input);
 
-    // Check account slug uniqueness before creating user
-    const { data: existingSlug } = await adminClient
-      .from("profiles")
-      .select("user_id")
-      .eq("account_slug", parsed.accountSlug)
-      .maybeSingle();
+    // Check workspace slug uniqueness before creating user when creating a new workspace
+    if (!parsed.inviteToken) {
+      const { data: existingSlug } = await adminClient
+        .from("workspaces")
+        .select("id")
+        .eq("slug", parsed.accountSlug)
+        .maybeSingle();
 
-    if (existingSlug) {
-      return {
-        data: null,
-        error: "This account slug is already in use",
-      };
+      if (existingSlug) {
+        return {
+          data: null,
+          error: "This workspace slug is already in use",
+        };
+      }
     }
 
     // 1. Create user via signUp — returns a session so the user is logged in immediately
@@ -63,7 +68,6 @@ export async function signUp(
       .from("profiles")
       .upsert({
         user_id: data.user.id,
-        account_slug: parsed.accountSlug,
         first_name: parsed.firstName,
         last_name: parsed.lastName,
       });
@@ -76,8 +80,29 @@ export async function signUp(
       };
     }
 
-    // Fire-and-forget: create local trial asynchronously
-    createTrial(adminClient, { user_id: data.user.id }).catch(console.error);
+    if (parsed.inviteToken) {
+      const inviteResult = await acceptWorkspaceInvite(adminClient, {
+        token: parsed.inviteToken,
+        userId: data.user.id,
+        email: parsed.email,
+      });
+
+      if (inviteResult.error) {
+        await adminClient.auth.admin.deleteUser(data.user.id);
+        return { data: null, error: inviteResult.error };
+      }
+    } else {
+      const workspaceResult = await createWorkspace(adminClient, {
+        userId: data.user.id,
+        slug: parsed.accountSlug,
+      });
+
+      if (workspaceResult.error) {
+        await adminClient.auth.admin.deleteUser(data.user.id);
+        return { data: null, error: workspaceResult.error };
+      }
+    }
+
     sendWelcomeEmail(parsed.email, parsed.firstName).catch(console.error);
     sendTelegramMessage("A new user has registered! 🚀🚀🚀").catch(console.error);
 
@@ -187,12 +212,12 @@ export async function getUserRole(
 ): Promise<ServiceResult<string>> {
   const { data, error } = await supabase
     .from("profiles")
-    .select("role")
+    .select("platform_role")
     .eq("user_id", userId)
     .single();
 
   if (error) return { data: null, error: error.message };
-  return { data: data.role, error: null };
+  return { data: data.platform_role, error: null };
 }
 
 export function userHasPassword(user: User): boolean {
@@ -218,7 +243,11 @@ export async function sendMagicLink(
     const { error } = await supabase.auth.signInWithOtp({
       email: parsed.email,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm${
+          parsed.redirectTo
+            ? `?next=${encodeURIComponent(parsed.redirectTo)}`
+            : ""
+        }`,
       },
     });
 

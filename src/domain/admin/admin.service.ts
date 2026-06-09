@@ -6,15 +6,15 @@ type ServiceResult<T> =
 
 export type AdminProfile = {
   user_id: string;
-  account_slug: string;
   first_name: string | null;
   last_name: string | null;
-  role: string;
+  platform_role: string;
+  default_workspace_id: string | null;
   created_at: string;
 };
 
 export type AdminTrial = {
-  user_id: string;
+  workspace_id: string;
   status: string;
   plan: string;
   starts_at: string;
@@ -24,7 +24,8 @@ export type AdminTrial = {
 
 export type AdminSubscription = {
   id: number;
-  user_id: string;
+  workspace_id: string;
+  billing_owner_user_id: string | null;
   status: string;
   paddle_product_name: string | null;
   paddle_price_name: string | null;
@@ -33,12 +34,24 @@ export type AdminSubscription = {
   created_at: string;
 };
 
+export type AdminWorkspace = {
+  id: string;
+  slug: string;
+  name: string;
+  owner_user_id: string;
+  billing_owner_user_id: string | null;
+  status: string;
+  created_at: string;
+};
+
 export async function getAllProfiles(
   adminClient: SupabaseClient
 ): Promise<ServiceResult<AdminProfile[]>> {
   const { data, error } = await adminClient
     .from("profiles")
-    .select("user_id, account_slug, first_name, last_name, role, created_at")
+    .select(
+      "user_id, first_name, last_name, platform_role, default_workspace_id, created_at"
+    )
     .order("created_at", { ascending: false });
 
   if (error) return { data: null, error: error.message };
@@ -50,7 +63,7 @@ export async function getAllTrials(
 ): Promise<ServiceResult<AdminTrial[]>> {
   const { data, error } = await adminClient
     .from("trials")
-    .select("user_id, status, plan, starts_at, ends_at, created_at")
+    .select("workspace_id, status, plan, starts_at, ends_at, created_at")
     .order("created_at", { ascending: false });
 
   if (error) return { data: null, error: error.message };
@@ -63,7 +76,7 @@ export async function getAllSubscriptions(
   const { data, error } = await adminClient
     .from("subscriptions")
     .select(
-      "id, user_id, status, paddle_product_name, paddle_price_name, current_period_start, current_period_end, created_at"
+      "id, workspace_id, billing_owner_user_id, status, paddle_product_name, paddle_price_name, current_period_start, current_period_end, created_at"
     )
     .order("created_at", { ascending: false });
 
@@ -86,4 +99,18 @@ export async function getAllUsers(
   }));
 
   return { data: users, error: null };
+}
+
+export async function getAllWorkspaces(
+  adminClient: SupabaseClient
+): Promise<ServiceResult<AdminWorkspace[]>> {
+  const { data, error } = await adminClient
+    .from("workspaces")
+    .select(
+      "id, slug, name, owner_user_id, billing_owner_user_id, status, created_at"
+    )
+    .order("created_at", { ascending: false });
+
+  if (error) return { data: null, error: error.message };
+  return { data, error: null };
 }

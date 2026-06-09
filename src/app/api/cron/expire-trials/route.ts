@@ -1,7 +1,38 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getExpiredTrials, expireTrial } from "@/domain/trials/trials.service";
+import { expireTrial, getExpiredTrials } from "@/domain/trials/trials.service";
 import { sendTrialExpired } from "@/domain/email/email.service";
+
+async function getWorkspaceContact(
+  adminClient: ReturnType<typeof createAdminClient>,
+  workspaceId: string
+) {
+  const { data: workspace } = await adminClient
+    .from("workspaces")
+    .select("owner_user_id, billing_owner_user_id")
+    .eq("id", workspaceId)
+    .maybeSingle();
+
+  if (!workspace) return null;
+
+  const contactUserId =
+    (workspace.billing_owner_user_id as string | null) ??
+    (workspace.owner_user_id as string);
+
+  const [{ data: authUser }, { data: profile }] = await Promise.all([
+    adminClient.auth.admin.getUserById(contactUserId),
+    adminClient
+      .from("profiles")
+      .select("first_name")
+      .eq("user_id", contactUserId)
+      .maybeSingle(),
+  ]);
+
+  return {
+    email: authUser.user?.email ?? "",
+    firstName: (profile?.first_name as string | null) ?? undefined,
+  };
+}
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
@@ -10,7 +41,6 @@ export async function GET(request: NextRequest) {
   }
 
   const adminClient = createAdminClient();
-
   const result = await getExpiredTrials(adminClient);
   if (result.error !== null) {
     return NextResponse.json({ error: result.error }, { status: 500 });
@@ -18,22 +48,18 @@ export async function GET(request: NextRequest) {
 
   let processed = 0;
   for (const trial of result.data) {
-    await expireTrial(adminClient, trial.user_id);
+    await expireTrial(adminClient, trial.workspace_id);
 
-    // Send trial expired notification (fire-and-forget per user)
     try {
-      const { data: { user } } = await adminClient.auth.admin.getUserById(trial.user_id);
-      if (user?.email) {
-        const { data: profile } = await adminClient
-          .from("profiles")
-          .select("first_name")
-          .eq("user_id", trial.user_id)
-          .maybeSingle();
-
-        sendTrialExpired(user.email, profile?.first_name || undefined).catch(console.error);
+      const contact = await getWorkspaceContact(adminClient, trial.workspace_id);
+      if (contact?.email) {
+        sendTrialExpired(contact.email, contact.firstName).catch(console.error);
       }
     } catch (err) {
-      console.error(`Failed to send trial expired email for user ${trial.user_id}:`, err);
+      console.error(
+        `Failed to send trial expired email for workspace ${trial.workspace_id}:`,
+        err
+      );
     }
 
     processed++;
