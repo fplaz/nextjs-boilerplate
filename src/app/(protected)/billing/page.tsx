@@ -11,5 +11,5 @@ export default async function BillingRedirectPage() {
   if (!user) redirect("/login");
 
   const workspace = await requireCurrentWorkspace(supabase, user.id);
-  redirect(`/w/${workspace.current.workspace.slug}/billing`);
+  redirect(`/w/${workspace.current.workspace.slug}/settings?tab=billing`);
 }

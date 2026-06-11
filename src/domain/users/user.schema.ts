@@ -28,17 +28,6 @@ export const changePasswordInput = z
     path: ["confirmPassword"],
   });
 
-export const createPasswordInput = z
-  .object({
-    password: passwordStrength,
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match.",
-    path: ["confirmPassword"],
-  });
-
 export type UpdateProfileInput = z.infer<typeof updateProfileInput>;
 export type ChangeEmailInput = z.infer<typeof changeEmailInput>;
 export type ChangePasswordInput = z.infer<typeof changePasswordInput>;
-export type CreatePasswordInput = z.infer<typeof createPasswordInput>;

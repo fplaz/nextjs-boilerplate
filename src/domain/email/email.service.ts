@@ -2,9 +2,6 @@ import Mailgun from "mailgun.js";
 import FormData from "form-data";
 import {
   welcomeEmailHtml,
-  trialTwoDayWarningHtml,
-  trialOneDayWarningHtml,
-  trialExpiredHtml,
   workspaceInviteHtml,
 } from "./email.templates";
 
@@ -49,39 +46,6 @@ export async function sendWelcomeEmail(
   firstName?: string
 ): Promise<ServiceResult> {
   return sendEmail(email, "Welcome to LaunchKit!", welcomeEmailHtml(firstName));
-}
-
-export async function sendTrialTwoDayWarning(
-  email: string,
-  firstName?: string
-): Promise<ServiceResult> {
-  return sendEmail(
-    email,
-    "Your trial ends in 2 days",
-    trialTwoDayWarningHtml(firstName)
-  );
-}
-
-export async function sendTrialOneDayWarning(
-  email: string,
-  firstName?: string
-): Promise<ServiceResult> {
-  return sendEmail(
-    email,
-    "Your trial expires tomorrow",
-    trialOneDayWarningHtml(firstName)
-  );
-}
-
-export async function sendTrialExpired(
-  email: string,
-  firstName?: string
-): Promise<ServiceResult> {
-  return sendEmail(
-    email,
-    "Your trial has ended",
-    trialExpiredHtml(firstName)
-  );
 }
 
 export async function sendWorkspaceInviteEmail(args: {

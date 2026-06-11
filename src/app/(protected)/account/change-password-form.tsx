@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { changePassword, createPassword } from "@/app/actions/profile";
+import { changePassword } from "@/app/actions/profile";
 import { SubmitButton } from "@/components/submit-button";
 import {
   Card,
@@ -15,11 +15,7 @@ import { Label } from "@/components/ui/label";
 import { PASSWORD_RULES, isPasswordValid } from "@/lib/validation";
 import { Check, X } from "lucide-react";
 
-interface ChangePasswordFormProps {
-  hasPassword: boolean;
-}
-
-export function ChangePasswordForm({ hasPassword }: ChangePasswordFormProps) {
+export function ChangePasswordForm() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -27,48 +23,34 @@ export function ChangePasswordForm({ hasPassword }: ChangePasswordFormProps) {
   const passwordValid = isPasswordValid(password);
   const passwordsMatch = confirmPassword === password;
 
-  const formValid = hasPassword
-    ? currentPassword.length > 0 &&
-      passwordValid &&
-      passwordsMatch &&
-      confirmPassword.length > 0
-    : passwordValid && passwordsMatch && confirmPassword.length > 0;
+  const formValid =
+    currentPassword.length > 0 &&
+    passwordValid &&
+    passwordsMatch &&
+    confirmPassword.length > 0;
 
   return (
     <Card id="password">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          Password
-          {!hasPassword && (
-            <span className="h-2 w-2 rounded-full bg-red-500" />
-          )}
-        </CardTitle>
-        <CardDescription>
-          {hasPassword
-            ? "Change your password"
-            : "Create a password for easier signing"}
-        </CardDescription>
+        <CardTitle>Password</CardTitle>
+        <CardDescription>Change your password</CardDescription>
       </CardHeader>
       <CardContent>
         <form className="grid gap-4">
-          {hasPassword && (
-            <div className="grid gap-2">
-              <Label htmlFor="current_password">Current Password</Label>
-              <Input
-                id="current_password"
-                name="current_password"
-                type="password"
-                placeholder="Enter your current password"
-                required
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-              />
-            </div>
-          )}
           <div className="grid gap-2">
-            <Label htmlFor="password">
-              {hasPassword ? "New Password" : "Password"}
-            </Label>
+            <Label htmlFor="current_password">Current Password</Label>
+            <Input
+              id="current_password"
+              name="current_password"
+              type="password"
+              placeholder="Enter your current password"
+              required
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="password">New Password</Label>
             <Input
               id="password"
               name="password"
@@ -103,18 +85,12 @@ export function ChangePasswordForm({ hasPassword }: ChangePasswordFormProps) {
             )}
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="confirm_password">
-              {hasPassword ? "Confirm New Password" : "Confirm Password"}
-            </Label>
+            <Label htmlFor="confirm_password">Confirm New Password</Label>
             <Input
               id="confirm_password"
               name="confirm_password"
               type="password"
-              placeholder={
-                hasPassword
-                  ? "Confirm your new password"
-                  : "Confirm your password"
-              }
+              placeholder="Confirm your new password"
               minLength={8}
               required
               value={confirmPassword}
@@ -128,11 +104,11 @@ export function ChangePasswordForm({ hasPassword }: ChangePasswordFormProps) {
           </div>
           <div>
             <SubmitButton
-              formAction={hasPassword ? changePassword : createPassword}
-              pendingText={hasPassword ? "Updating..." : "Creating..."}
+              formAction={changePassword}
+              pendingText="Updating..."
               disabled={!formValid}
             >
-              {hasPassword ? "Change Password" : "Create Password"}
+              Change Password
             </SubmitButton>
           </div>
         </form>

@@ -13,15 +13,6 @@ export type AdminProfile = {
   created_at: string;
 };
 
-export type AdminTrial = {
-  workspace_id: string;
-  status: string;
-  plan: string;
-  starts_at: string;
-  ends_at: string;
-  created_at: string;
-};
-
 export type AdminSubscription = {
   id: number;
   workspace_id: string;
@@ -52,18 +43,6 @@ export async function getAllProfiles(
     .select(
       "user_id, first_name, last_name, platform_role, default_workspace_id, created_at"
     )
-    .order("created_at", { ascending: false });
-
-  if (error) return { data: null, error: error.message };
-  return { data, error: null };
-}
-
-export async function getAllTrials(
-  adminClient: SupabaseClient
-): Promise<ServiceResult<AdminTrial[]>> {
-  const { data, error } = await adminClient
-    .from("trials")
-    .select("workspace_id, status, plan, starts_at, ends_at, created_at")
     .order("created_at", { ascending: false });
 
   if (error) return { data: null, error: error.message };

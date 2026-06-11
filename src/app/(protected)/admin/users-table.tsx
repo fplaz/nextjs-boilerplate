@@ -17,11 +17,9 @@ type ProfileWithEmail = AdminProfile & {
   email: string;
   default_workspace_slug: string;
   subscription_name: string;
-  trial_status: string;
-  trial_ends_at: string;
 };
 
-type SortKey = "trial_status" | "trial_ends_at" | "subscription_name";
+type SortKey = "subscription_name";
 type SortDir = "asc" | "desc";
 
 function SortableHead({
@@ -71,17 +69,9 @@ export function UsersTable({ profiles }: { profiles: ProfileWithEmail[] }) {
     if (!sortKey) return profiles;
 
     return [...profiles].sort((a, b) => {
-      let cmp: number;
-
-      if (sortKey === "trial_ends_at") {
-        const dateA = a.trial_ends_at ? new Date(a.trial_ends_at).getTime() : 0;
-        const dateB = b.trial_ends_at ? new Date(b.trial_ends_at).getTime() : 0;
-        cmp = dateA - dateB;
-      } else {
-        const valA = (a[sortKey] || "").toLowerCase();
-        const valB = (b[sortKey] || "").toLowerCase();
-        cmp = valA.localeCompare(valB);
-      }
+      const valA = (a[sortKey] || "").toLowerCase();
+      const valB = (b[sortKey] || "").toLowerCase();
+      const cmp = valA.localeCompare(valB);
 
       return sortDir === "asc" ? cmp : -cmp;
     });
@@ -93,20 +83,6 @@ export function UsersTable({ profiles }: { profiles: ProfileWithEmail[] }) {
         <TableRow>
           <TableHead>Email</TableHead>
           <TableHead className="max-w-48">Default Workspace</TableHead>
-          <SortableHead
-            label="Trial Status"
-            sortKey="trial_status"
-            activeKey={sortKey}
-            activeDir={sortDir}
-            onSort={handleSort}
-          />
-          <SortableHead
-            label="Trial End Date"
-            sortKey="trial_ends_at"
-            activeKey={sortKey}
-            activeDir={sortDir}
-            onSort={handleSort}
-          />
           <SortableHead
             label="Subscription"
             sortKey="subscription_name"
@@ -123,8 +99,6 @@ export function UsersTable({ profiles }: { profiles: ProfileWithEmail[] }) {
           <TableRow key={p.user_id}>
             <TableCell>{p.email}</TableCell>
             <TableCell className="max-w-48 truncate font-mono text-sm">{p.default_workspace_slug || "—"}</TableCell>
-            <TableCell>{p.trial_status || "—"}</TableCell>
-            <TableCell>{p.trial_ends_at ? new Date(p.trial_ends_at).toLocaleDateString() : "—"}</TableCell>
             <TableCell>{p.subscription_name || "Not subscribed"}</TableCell>
             <TableCell>{new Date(p.created_at).toLocaleDateString()}</TableCell>
             <TableCell>{p.platform_role}</TableCell>

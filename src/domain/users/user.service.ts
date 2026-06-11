@@ -4,11 +4,9 @@ import {
   updateProfileInput,
   changeEmailInput,
   changePasswordInput,
-  createPasswordInput,
   type UpdateProfileInput,
   type ChangeEmailInput,
   type ChangePasswordInput,
-  type CreatePasswordInput,
 } from "./user.schema";
 
 type ServiceResult<T = null> =
@@ -87,29 +85,6 @@ export async function changePassword(
 
     const { error } = await supabase.auth.updateUser({
       password: parsed.password,
-    });
-
-    if (error) return { data: null, error: error.message };
-
-    return { data: null, error: null };
-  } catch (err) {
-    if (err instanceof ZodError) {
-      return { data: null, error: err.issues[0].message };
-    }
-    throw err;
-  }
-}
-
-export async function createPassword(
-  supabase: SupabaseClient,
-  input: CreatePasswordInput
-): Promise<ServiceResult> {
-  try {
-    const parsed = createPasswordInput.parse(input);
-
-    const { error } = await supabase.auth.updateUser({
-      password: parsed.password,
-      data: { has_password: true },
     });
 
     if (error) return { data: null, error: error.message };

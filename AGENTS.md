@@ -51,10 +51,18 @@ Response format: `{ data }` on success, `{ error: string }` on failure.
 - `src/app/(protected)/` — authenticated routes, wrapped with `NavBar` + centered layout via its `layout.tsx`
 - Auth pages (`/login`, `/signup`, `/forgot-password`, `/reset-password`) are public.
 
-### Client-side data fetching
+### Client-side data access
 
-Client components may fetch or mutate data, but must always go through API routes (`/api/…`) — never call Supabase directly
-from the browser. This keeps the Supabase client confined to the server and ensures auth validation happens in one place.
+ The browser must **never call Supabase directly** — the Supabase client stays
+ server-side so auth validation happens in one place. Client components reach the
+ server through one of two paths:
+
+ - **Server actions** (`src/app/actions/…`) — the default for mutations, especially
+   form submissions. They may `redirect()` with `?message=`/`?error=`, or return a
+   result for in-place updates (toast + `router.refresh()` to refresh server chrome
+   like the nav bar).
+ - **API routes** (`/api/…`) — for client-side *fetches* (loading data after mount,
+   e.g. the workspace switcher) and anywhere you need a JSON endpoint.
 
 ### UI components
 

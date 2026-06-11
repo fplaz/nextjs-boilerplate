@@ -69,28 +69,6 @@ export async function changePassword(formData: FormData) {
   );
 }
 
-export async function createPassword(formData: FormData) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return redirect("/login");
-
-  const result = await userService.createPassword(supabase, {
-    password: formData.get("password") as string,
-    confirmPassword: formData.get("confirm_password") as string,
-  });
-
-  if (result.error) {
-    return redirect(`/account?error=${encodeURIComponent(result.error)}`);
-  }
-
-  return redirect(
-    `/account?message=${encodeURIComponent("Password created")}`
-  );
-}
-
 export async function deleteAccount() {
   const supabase = await createClient();
   const {

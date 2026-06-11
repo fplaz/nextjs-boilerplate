@@ -1,4 +1,4 @@
-import type { SupabaseClient, User } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { ZodError } from "zod";
 import {
   signUpInput,
@@ -55,7 +55,6 @@ export async function signUp(
         data: {
           first_name: parsed.firstName,
           last_name: parsed.lastName,
-          has_password: true,
         },
       },
     });
@@ -189,7 +188,6 @@ export async function resetPassword(
 
     const { error } = await supabase.auth.updateUser({
       password: parsed.password,
-      data: { has_password: true },
     });
 
     if (error) return { data: null, error: error.message };
@@ -218,10 +216,6 @@ export async function getUserRole(
 
   if (error) return { data: null, error: error.message };
   return { data: data.platform_role, error: null };
-}
-
-export function userHasPassword(user: User): boolean {
-  return user.user_metadata?.has_password === true;
 }
 
 export async function sendMagicLink(

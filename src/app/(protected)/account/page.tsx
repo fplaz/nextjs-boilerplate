@@ -9,7 +9,6 @@ import { Separator } from "@/components/ui/separator";
 import { Suspense } from "react";
 import { ArrowLeft } from "lucide-react";
 import { AccountToast } from "./account-toast";
-import { userHasPassword } from "@/domain/auth/auth.service";
 
 export default async function AccountPage() {
   const supabase = await createClient();
@@ -25,8 +24,6 @@ export default async function AccountPage() {
     .eq("user_id", user.id)
     .single();
 
-  const hasPassword = userHasPassword(user);
-
   return (
     <div className="space-y-8">
       <div>
@@ -35,20 +32,12 @@ export default async function AccountPage() {
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="mr-1 h-4 w-4" />
-          Back to app
+          Back to workspace
         </Link>
         <h1 className="mt-2 text-3xl font-bold">Account Settings</h1>
         <p className="mt-1 text-muted-foreground">
           Manage your profile and account preferences
         </p>
-        {!hasPassword && (
-          <p className="mt-3 text-sm text-red-600">
-            <a href="#password" className="underline font-medium">
-              Create a password
-            </a>{" "}
-            for easier sign in.
-          </p>
-        )}
       </div>
 
       <Suspense>
@@ -66,7 +55,7 @@ export default async function AccountPage() {
 
       <Separator />
 
-      <ChangePasswordForm hasPassword={hasPassword} />
+      <ChangePasswordForm />
 
       <Separator />
 

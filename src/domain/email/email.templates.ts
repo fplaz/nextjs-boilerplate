@@ -65,51 +65,6 @@ ${footer("You're receiving this email because you signed up for LaunchKit.")}`;
   return layout("Welcome to LaunchKit", content);
 }
 
-export function trialTwoDayWarningHtml(firstName?: string): string {
-  const content = `          <!-- Header -->
-          <tr>
-            <td style="padding: 32px 32px 0 32px; text-align: center;">
-              ${heading("Your trial ends in 2 days")}
-              ${paragraph(`${greeting(firstName)} your LaunchKit free trial expires in 2 days. Once it ends, your workspaces will stop redirecting.`)}
-              ${paragraph("Subscribe now to keep your workspaces working without interruption.")}
-            </td>
-          </tr>
-${ctaButton("Subscribe Now", `${siteUrl}/billing`)}
-${footer("You're receiving this email because you have an active trial on LaunchKit.")}`;
-
-  return layout("Your trial ends in 2 days", content);
-}
-
-export function trialOneDayWarningHtml(firstName?: string): string {
-  const content = `          <!-- Header -->
-          <tr>
-            <td style="padding: 32px 32px 0 32px; text-align: center;">
-              ${heading("Your trial expires tomorrow")}
-              ${paragraph(`${greeting(firstName)} this is a final reminder — your LaunchKit trial expires tomorrow. After that, your workspaces will stop working.`)}
-              ${paragraph("Subscribe today to keep everything running smoothly.")}
-            </td>
-          </tr>
-${ctaButton("Subscribe Now", `${siteUrl}/billing`)}
-${footer("You're receiving this email because you have an active trial on LaunchKit.")}`;
-
-  return layout("Your trial expires tomorrow", content);
-}
-
-export function trialExpiredHtml(firstName?: string): string {
-  const content = `          <!-- Header -->
-          <tr>
-            <td style="padding: 32px 32px 0 32px; text-align: center;">
-              ${heading("Your trial has ended")}
-              ${paragraph(`${greeting(firstName)} your LaunchKit free trial has expired and your workspaces have been deactivated. They will no longer redirect to their destinations.`)}
-              ${paragraph("Subscribe to a plan to reactivate your workspaces instantly.")}
-            </td>
-          </tr>
-${ctaButton("Subscribe Now", `${siteUrl}/billing`)}
-${footer("You're receiving this email because your trial on LaunchKit has ended.")}`;
-
-  return layout("Your trial has ended", content);
-}
-
 export function workspaceInviteHtml(args: {
   inviterEmail: string;
   workspaceName: string;

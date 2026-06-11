@@ -6,7 +6,6 @@ import {
   type UpsertSubscriptionInput,
   type WorkspaceBillingState,
 } from "./subscriptions.schema";
-import { getWorkspaceTrial } from "@/domain/trials/trials.service";
 
 type ServiceResult<T = null> =
   | { data: T; error: null }
@@ -77,29 +76,6 @@ export async function getWorkspaceBillingState(
   if (subResult.error !== null) return { data: null, error: subResult.error };
 
   const subscription = subResult.data;
-
-  if (subscription && (subscription.status === "active" || subscription.status === "trialing")) {
-    return {
-      data: {
-        status: subscription.status,
-        trialEnd: subscription.trial_end,
-        planName: subscription.paddle_price_name,
-      },
-      error: null,
-    };
-  }
-
-  const trialResult = await getWorkspaceTrial(supabase, workspaceId);
-  if (trialResult.error === null && trialResult.data?.status === "active") {
-    return {
-      data: {
-        status: "trialing",
-        trialEnd: trialResult.data.ends_at,
-        planName: trialResult.data.plan,
-      },
-      error: null,
-    };
-  }
 
   if (subscription) {
     return {

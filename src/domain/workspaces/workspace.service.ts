@@ -4,16 +4,20 @@ import { ZodError } from "zod";
 import {
   acceptInviteInput,
   createWorkspaceInput,
+  extensionForLogoType,
   inviteMemberInput,
+  removeWorkspaceLogoInput,
   removeWorkspaceMemberInput,
   updateWorkspaceDefaultInput,
   updateWorkspaceMemberRoleInput,
+  updateWorkspaceNameInput,
+  uploadWorkspaceLogoInput,
+  WORKSPACE_LOGO_BUCKET,
   type WorkspaceInviteRow,
   type WorkspaceMembershipRow,
   type WorkspaceRole,
   type WorkspaceRow,
 } from "./workspace.schema";
-import { createTrial } from "@/domain/trials/trials.service";
 
 type ServiceResult<T = null> =
   | { data: T; error: null }
@@ -91,6 +95,8 @@ function normalizeMembershipRow(row: Record<string, unknown>): WorkspaceMembersh
           ? workspace.billing_owner_user_id
           : null,
       status: (workspace?.status as WorkspaceRow["status"]) ?? "active",
+      logo_path:
+        typeof workspace?.logo_path === "string" ? workspace.logo_path : null,
       created_at: String(workspace?.created_at),
       updated_at: String(workspace?.updated_at),
     },
@@ -173,12 +179,6 @@ export async function createWorkspace(
       return { data: null, error: "Could not link workspace to your profile." };
     }
 
-    const trialResult = await createTrial(adminClient, { workspace_id: workspace.id });
-    if (trialResult.error) {
-      await adminClient.from("workspaces").delete().eq("id", workspace.id);
-      return { data: null, error: "Could not create workspace trial." };
-    }
-
     return { data: workspace as WorkspaceRow, error: null };
   } catch (err) {
     if (err instanceof ZodError) {
@@ -231,7 +231,7 @@ export async function getWorkspaceMembershipsForUser(
   const { data, error } = await adminClient
     .from("workspace_memberships")
     .select(
-      "id, workspace_id, user_id, role, status, invited_by_user_id, created_at, updated_at, workspaces!inner(id, slug, name, owner_user_id, billing_owner_user_id, status, created_at, updated_at)"
+      "id, workspace_id, user_id, role, status, invited_by_user_id, created_at, updated_at, workspaces!inner(id, slug, name, owner_user_id, billing_owner_user_id, status, logo_path, created_at, updated_at)"
     )
     .eq("user_id", userId)
     .eq("status", "active")
@@ -277,7 +277,7 @@ export async function resolveWorkspaceForUser(
   const defaultWorkspaceId =
     (profileResult.data?.default_workspace_id as string | null | undefined) ?? null;
 
-  let current =
+  const current =
     (slug
       ? memberships.find((membership) => membership.workspace.slug === slug)
       : undefined) ??
@@ -503,7 +503,7 @@ export async function getWorkspaceInviteByToken(
   const { data, error } = await adminClient
     .from("workspace_invites")
     .select(
-      "*, workspaces!inner(id, slug, name, owner_user_id, billing_owner_user_id, status, created_at, updated_at)"
+      "*, workspaces!inner(id, slug, name, owner_user_id, billing_owner_user_id, status, logo_path, created_at, updated_at)"
     )
     .eq("token_hash", hashInviteToken(token))
     .maybeSingle();
@@ -649,6 +649,181 @@ export async function updateWorkspaceMemberRole(
       .eq("id", parsed.membershipId);
 
     if (error) return { data: null, error: error.message };
+    return { data: null, error: null };
+  } catch (err) {
+    if (err instanceof ZodError) {
+      return { data: null, error: err.issues[0].message };
+    }
+    throw err;
+  }
+}
+
+export async function updateWorkspaceName(
+  adminClient: SupabaseClient,
+  input: { workspaceId: string; actorUserId: string; name: string }
+): Promise<ServiceResult<WorkspaceRow>> {
+  try {
+    const parsed = updateWorkspaceNameInput.parse({
+      ...input,
+      name: input.name?.trim(),
+    });
+
+    const actorResult = await resolveWorkspaceForUser(adminClient, parsed.actorUserId);
+    if (actorResult.error) return { data: null, error: actorResult.error };
+
+    const actorMembership = actorResult.data?.memberships.find(
+      (membership) => membership.workspace.id === parsed.workspaceId
+    );
+    if (!actorMembership || !isPrivilegedWorkspaceRole(actorMembership.role)) {
+      return { data: null, error: "You are not allowed to edit this workspace." };
+    }
+
+    const { data: workspace, error } = await adminClient
+      .from("workspaces")
+      .update({
+        name: parsed.name,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", parsed.workspaceId)
+      .select("*")
+      .single();
+
+    if (error || !workspace) {
+      return { data: null, error: error?.message ?? "Could not update workspace." };
+    }
+
+    return { data: workspace as WorkspaceRow, error: null };
+  } catch (err) {
+    if (err instanceof ZodError) {
+      return { data: null, error: err.issues[0].message };
+    }
+    throw err;
+  }
+}
+
+export function getWorkspaceLogoUrl(
+  client: SupabaseClient,
+  logoPath: string | null
+): string | null {
+  if (!logoPath) return null;
+  const { data } = client.storage
+    .from(WORKSPACE_LOGO_BUCKET)
+    .getPublicUrl(logoPath);
+  return data.publicUrl;
+}
+
+export async function uploadWorkspaceLogo(
+  adminClient: SupabaseClient,
+  input: { workspaceId: string; actorUserId: string; file: File }
+): Promise<ServiceResult<{ logoPath: string; logoUrl: string }>> {
+  try {
+    const parsed = uploadWorkspaceLogoInput.parse(input);
+
+    const actorResult = await resolveWorkspaceForUser(
+      adminClient,
+      parsed.actorUserId
+    );
+    if (actorResult.error) return { data: null, error: actorResult.error };
+
+    const actorMembership = actorResult.data?.memberships.find(
+      (membership) => membership.workspace.id === parsed.workspaceId
+    );
+    if (!actorMembership || !isPrivilegedWorkspaceRole(actorMembership.role)) {
+      return { data: null, error: "You are not allowed to edit this workspace." };
+    }
+
+    const ext = extensionForLogoType(parsed.file.type);
+    if (!ext) {
+      return { data: null, error: "Logo must be a PNG or JPEG image" };
+    }
+
+    const previousPath = actorMembership.workspace.logo_path;
+    const objectPath = `${parsed.workspaceId}/logo-${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await adminClient.storage
+      .from(WORKSPACE_LOGO_BUCKET)
+      .upload(objectPath, parsed.file, {
+        contentType: parsed.file.type,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      return { data: null, error: uploadError.message };
+    }
+
+    const { data: workspace, error } = await adminClient
+      .from("workspaces")
+      .update({ logo_path: objectPath, updated_at: new Date().toISOString() })
+      .eq("id", parsed.workspaceId)
+      .select("*")
+      .single();
+
+    if (error || !workspace) {
+      // Avoid orphaning the just-uploaded object if the row update failed.
+      await adminClient.storage.from(WORKSPACE_LOGO_BUCKET).remove([objectPath]);
+      return {
+        data: null,
+        error: error?.message ?? "Could not update workspace logo.",
+      };
+    }
+
+    // Best-effort cleanup of the replaced logo.
+    if (previousPath && previousPath !== objectPath) {
+      await adminClient.storage
+        .from(WORKSPACE_LOGO_BUCKET)
+        .remove([previousPath]);
+    }
+
+    return {
+      data: {
+        logoPath: objectPath,
+        logoUrl: getWorkspaceLogoUrl(adminClient, objectPath) ?? "",
+      },
+      error: null,
+    };
+  } catch (err) {
+    if (err instanceof ZodError) {
+      return { data: null, error: err.issues[0].message };
+    }
+    throw err;
+  }
+}
+
+export async function removeWorkspaceLogo(
+  adminClient: SupabaseClient,
+  input: { workspaceId: string; actorUserId: string }
+): Promise<ServiceResult> {
+  try {
+    const parsed = removeWorkspaceLogoInput.parse(input);
+
+    const actorResult = await resolveWorkspaceForUser(
+      adminClient,
+      parsed.actorUserId
+    );
+    if (actorResult.error) return { data: null, error: actorResult.error };
+
+    const actorMembership = actorResult.data?.memberships.find(
+      (membership) => membership.workspace.id === parsed.workspaceId
+    );
+    if (!actorMembership || !isPrivilegedWorkspaceRole(actorMembership.role)) {
+      return { data: null, error: "You are not allowed to edit this workspace." };
+    }
+
+    const previousPath = actorMembership.workspace.logo_path;
+
+    const { error } = await adminClient
+      .from("workspaces")
+      .update({ logo_path: null, updated_at: new Date().toISOString() })
+      .eq("id", parsed.workspaceId);
+
+    if (error) return { data: null, error: error.message };
+
+    if (previousPath) {
+      await adminClient.storage
+        .from(WORKSPACE_LOGO_BUCKET)
+        .remove([previousPath]);
+    }
+
     return { data: null, error: null };
   } catch (err) {
     if (err instanceof ZodError) {

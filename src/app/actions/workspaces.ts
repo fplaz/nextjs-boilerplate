@@ -6,9 +6,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import {
   acceptWorkspaceInvite,
   createWorkspaceInvite,
+  removeWorkspaceLogo,
   removeWorkspaceMember,
   resolveWorkspaceForUser,
   updateWorkspaceMemberRole,
+  updateWorkspaceName,
+  uploadWorkspaceLogo,
 } from "@/domain/workspaces/workspace.service";
 import { sendWorkspaceInviteEmail } from "@/domain/email/email.service";
 
@@ -38,7 +41,8 @@ export async function inviteWorkspaceMemberAction(formData: FormData) {
   );
 
   if (workspaceResult.error || !workspaceResult.data) {
-    workspaceRedirect(workspaceSlug, "members", {
+    workspaceRedirect(workspaceSlug, "settings", {
+      tab: "members",
       error: workspaceResult.error ?? "Workspace not found.",
     });
   }
@@ -52,7 +56,8 @@ export async function inviteWorkspaceMemberAction(formData: FormData) {
   });
 
   if (inviteResult.error || !inviteResult.data) {
-    workspaceRedirect(workspaceSlug, "members", {
+    workspaceRedirect(workspaceSlug, "settings", {
+      tab: "members",
       error: inviteResult.error ?? "Could not create invite.",
     });
   }
@@ -66,9 +71,120 @@ export async function inviteWorkspaceMemberAction(formData: FormData) {
     inviteUrl,
   });
 
-  workspaceRedirect(workspaceSlug, "members", {
+  workspaceRedirect(workspaceSlug, "settings", {
+    tab: "members",
     message: `Invite sent to ${inviteData.invite.email}`,
   });
+}
+
+export async function updateWorkspaceNameAction(
+  formData: FormData
+): Promise<{ error: string | null; name?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "You must be signed in." };
+
+  const workspaceSlug = formData.get("workspace_slug") as string;
+  const adminClient = createAdminClient();
+  const workspaceResult = await resolveWorkspaceForUser(
+    adminClient,
+    user.id,
+    workspaceSlug
+  );
+
+  if (workspaceResult.error || !workspaceResult.data) {
+    return { error: workspaceResult.error ?? "Workspace not found." };
+  }
+
+  const result = await updateWorkspaceName(adminClient, {
+    workspaceId: workspaceResult.data.current.workspace.id,
+    actorUserId: user.id,
+    name: formData.get("name") as string,
+  });
+
+  if (result.error || !result.data) {
+    return { error: result.error ?? "Could not update workspace." };
+  }
+
+  return { error: null, name: result.data.name };
+}
+
+export async function updateWorkspaceLogoAction(
+  formData: FormData
+): Promise<{ error: string | null; logoUrl?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "You must be signed in." };
+
+  const workspaceSlug = formData.get("workspace_slug") as string;
+  const file = formData.get("logo");
+
+  if (!(file instanceof File)) {
+    return { error: "A logo file is required" };
+  }
+
+  const adminClient = createAdminClient();
+  const workspaceResult = await resolveWorkspaceForUser(
+    adminClient,
+    user.id,
+    workspaceSlug
+  );
+
+  if (workspaceResult.error || !workspaceResult.data) {
+    return { error: workspaceResult.error ?? "Workspace not found." };
+  }
+
+  const result = await uploadWorkspaceLogo(adminClient, {
+    workspaceId: workspaceResult.data.current.workspace.id,
+    actorUserId: user.id,
+    file,
+  });
+
+  if (result.error || !result.data) {
+    return { error: result.error ?? "Could not update workspace logo." };
+  }
+
+  return { error: null, logoUrl: result.data.logoUrl };
+}
+
+export async function removeWorkspaceLogoAction(
+  formData: FormData
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { error: "You must be signed in." };
+
+  const workspaceSlug = formData.get("workspace_slug") as string;
+  const adminClient = createAdminClient();
+  const workspaceResult = await resolveWorkspaceForUser(
+    adminClient,
+    user.id,
+    workspaceSlug
+  );
+
+  if (workspaceResult.error || !workspaceResult.data) {
+    return { error: workspaceResult.error ?? "Workspace not found." };
+  }
+
+  const result = await removeWorkspaceLogo(adminClient, {
+    workspaceId: workspaceResult.data.current.workspace.id,
+    actorUserId: user.id,
+  });
+
+  if (result.error) {
+    return { error: result.error };
+  }
+
+  return { error: null };
 }
 
 export async function acceptWorkspaceInviteAction(formData: FormData) {
@@ -115,7 +231,8 @@ export async function updateWorkspaceMemberRoleAction(formData: FormData) {
   );
 
   if (workspaceResult.error || !workspaceResult.data) {
-    workspaceRedirect(workspaceSlug, "members", {
+    workspaceRedirect(workspaceSlug, "settings", {
+      tab: "members",
       error: workspaceResult.error ?? "Workspace not found.",
     });
   }
@@ -128,10 +245,13 @@ export async function updateWorkspaceMemberRoleAction(formData: FormData) {
   });
 
   if (result.error) {
-    workspaceRedirect(workspaceSlug, "members", { error: result.error });
+    workspaceRedirect(workspaceSlug, "settings", { tab: "members", error: result.error });
   }
 
-  workspaceRedirect(workspaceSlug, "members", { message: "Member role updated" });
+  workspaceRedirect(workspaceSlug, "settings", {
+    tab: "members",
+    message: "Member role updated",
+  });
 }
 
 export async function removeWorkspaceMemberAction(formData: FormData) {
@@ -151,7 +271,8 @@ export async function removeWorkspaceMemberAction(formData: FormData) {
   );
 
   if (workspaceResult.error || !workspaceResult.data) {
-    workspaceRedirect(workspaceSlug, "members", {
+    workspaceRedirect(workspaceSlug, "settings", {
+      tab: "members",
       error: workspaceResult.error ?? "Workspace not found.",
     });
   }
@@ -163,7 +284,7 @@ export async function removeWorkspaceMemberAction(formData: FormData) {
   });
 
   if (result.error) {
-    workspaceRedirect(workspaceSlug, "members", { error: result.error });
+    workspaceRedirect(workspaceSlug, "settings", { tab: "members", error: result.error });
   }
 
   const remainingWorkspace = await resolveWorkspaceForUser(adminClient, user.id);

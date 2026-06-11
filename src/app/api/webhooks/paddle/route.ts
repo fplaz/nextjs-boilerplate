@@ -13,7 +13,6 @@ import {
   upsertSubscription,
 } from "@/domain/subscriptions/subscriptions.service";
 import type { SubscriptionStatus } from "@/domain/subscriptions/subscriptions.schema";
-import { convertTrial } from "@/domain/trials/trials.service";
 
 type SubscriptionEvent =
   | SubscriptionCreatedEvent
@@ -107,11 +106,6 @@ export async function POST(request: NextRequest) {
               ? sub.scheduledChange.effectiveAt
               : null,
         });
-
-        // Convert local trial when a real subscription is created
-        if (event.eventType === EventName.SubscriptionCreated) {
-          await convertTrial(adminClient, workspaceId);
-        }
 
         break;
       }

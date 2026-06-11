@@ -189,59 +189,7 @@ export function CurrentPlanCard({
     }
   }
 
-  // Trial (no subscription row)
-  if (!subscription && billingState.status === "trialing") {
-    return (
-      <>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Current Plan</CardTitle>
-              <Badge variant="secondary">Free Trial</Badge>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid gap-2 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Plan</dt>
-                <dd className="font-medium">{billingState.planName ?? "Basic"}</dd>
-              </div>
-              {billingState.trialEnd && (
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Trial ends</dt>
-                  <dd className="font-medium">
-                    {new Date(billingState.trialEnd).toLocaleDateString()}
-                  </dd>
-                </div>
-              )}
-            </dl>
-            {showSubscribe && (
-              <Button
-                className="mt-4 w-full cursor-pointer"
-                disabled={!canManageBilling}
-                onClick={() => setSubscribeOpen(true)}
-              >
-                Subscribe
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-        <SubscribeDialog
-          open={subscribeOpen}
-          onOpenChange={setSubscribeOpen}
-          interval={interval}
-          setInterval={setInterval}
-          priceIds={priceIds}
-          onSelectPlan={handleSelectPlan}
-          hasActiveSubscription={hasActiveSubscription}
-          canManageBilling={canManageBilling}
-        />
-        {checkoutCompleted && <ActionSpinner message="Applying your subscription..." />}
-      </>
-    );
-  }
-
-  // Trial ended (no subscription) or fully canceled subscription
+  // No subscription yet, or fully canceled subscription
   if (!subscription || (subscription.status === "canceled" && !subscription.scheduled_cancelation_date)) {
     return (
       <>
@@ -249,7 +197,7 @@ export function CurrentPlanCard({
           <CardHeader>
             <CardTitle>Current Plan</CardTitle>
             <CardDescription>
-              {subscription ? "Your subscription has been canceled" : "Your trial has ended"}
+              {subscription ? "Your subscription has been canceled" : "You don't have an active subscription"}
             </CardDescription>
           </CardHeader>
           <CardContent>

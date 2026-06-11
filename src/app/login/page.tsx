@@ -20,16 +20,14 @@ import { Separator } from "@/components/ui/separator";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-type Step = "email" | "sign-in" | "magic-link-sent";
+type Step = "sign-in" | "magic-link-sent";
 
 function LoginForm() {
   const searchParams = useSearchParams();
-  const [step, setStep] = useState<Step>("email");
+  const [step, setStep] = useState<Step>("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [emailTouched, setEmailTouched] = useState(false);
-  const [hasPassword, setHasPassword] = useState(false);
-  const [checking, setChecking] = useState(false);
   const [sendingMagicLink, setSendingMagicLink] = useState(false);
   const [error, setError] = useState("");
   const redirectTo = searchParams.get("redirect_to") ?? "/dashboard";
@@ -39,31 +37,11 @@ function LoginForm() {
   const showEmailError = emailTouched && email.length > 0 && !emailValid;
   const passwordFormValid = emailValid && password.length > 0;
 
-  async function handleCheckEmail(e: React.FormEvent) {
-    e.preventDefault();
-    if (!emailValid) return;
-
-    setChecking(true);
-    setError("");
-    try {
-      const res = await fetch(
-        `/api/auth/check-email?email=${encodeURIComponent(email)}`
-      );
-      const json = await res.json();
-      if (json.error) {
-        setError(json.error);
-      } else {
-        setHasPassword(json.data.hasPassword);
-        setStep("sign-in");
-      }
-    } catch {
-      setError("Something went wrong. Please try again.");
-    } finally {
-      setChecking(false);
-    }
-  }
-
   async function handleSendMagicLink() {
+    if (!emailValid) {
+      setEmailTouched(true);
+      return;
+    }
     setSendingMagicLink(true);
     setError("");
     try {
@@ -85,8 +63,8 @@ function LoginForm() {
     }
   }
 
-  function handleChangeEmail() {
-    setStep("email");
+  function handleUseDifferentEmail() {
+    setStep("sign-in");
     setPassword("");
     setError("");
   }
@@ -101,128 +79,79 @@ function LoginForm() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Sign In</CardTitle>
           <CardDescription>
-            {step === "email" && "Enter your email to continue"}
             {step === "sign-in" && "Sign in to your account"}
             {step === "magic-link-sent" && "Check your email"}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {step === "email" && (
-            <form onSubmit={handleCheckEmail} className="grid gap-4">
-              <FormMessage />
-              {error && (
-                <p className="text-sm text-destructive">{error}</p>
-              )}
-              <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onBlur={() => setEmailTouched(true)}
-                  className={showEmailError ? "border-destructive" : ""}
-                />
-                {showEmailError && (
-                  <p className="text-xs text-destructive">
-                    Please enter a valid email address.
-                  </p>
-                )}
-              </div>
-              <Button type="submit" disabled={!emailValid || checking}>
-                {checking ? "Checking..." : "Continue"}
-              </Button>
-              <p className="text-center text-sm text-muted-foreground">
-                Don&apos;t have an account?{" "}
-                <Link
-                  href={`/signup?redirect_to=${encodeURIComponent(redirectTo)}${
-                    inviteToken
-                      ? `&invite_token=${encodeURIComponent(inviteToken)}`
-                      : ""
-                  }`}
-                  className="font-medium text-primary underline-offset-4 hover:underline"
-                >
-                  Sign Up
-                </Link>
-              </p>
-            </form>
-          )}
-
           {step === "sign-in" && (
             <div className="grid gap-4">
               {error && (
                 <p className="text-sm text-destructive">{error}</p>
               )}
-              <div className="grid gap-1">
-                <p className="text-sm text-muted-foreground">
-                  Signing in as{" "}
-                  <span className="font-medium text-foreground">
-                    {email}
-                  </span>
-                </p>
-                <button
-                  type="button"
-                  onClick={handleChangeEmail}
-                  className="text-sm text-primary underline-offset-4 hover:underline w-fit"
+              <form className="grid gap-4">
+                <FormMessage />
+                <input type="hidden" name="redirect_to" value={redirectTo} />
+                <div className="grid gap-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onBlur={() => setEmailTouched(true)}
+                    className={showEmailError ? "border-destructive" : ""}
+                  />
+                  {showEmailError && (
+                    <p className="text-xs text-destructive">
+                      Please enter a valid email address.
+                    </p>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                    <Link
+                      href="/forgot-password"
+                      className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="Your password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+                <SubmitButton
+                  formAction={signIn}
+                  pendingText="Signing in..."
+                  disabled={!passwordFormValid}
                 >
-                  Change email
-                </button>
+                  Sign In
+                </SubmitButton>
+              </form>
+
+              <div className="flex items-center gap-4">
+                <Separator className="flex-1" />
+                <span className="text-xs text-muted-foreground">or</span>
+                <Separator className="flex-1" />
               </div>
 
-              {hasPassword && (
-                <form className="grid gap-4">
-                  <input type="hidden" name="email" value={email} />
-                  <input type="hidden" name="redirect_to" value={redirectTo} />
-                  <div className="grid gap-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Password</Label>
-                      <Link
-                        href="/forgot-password"
-                        className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-                      >
-                        Forgot password?
-                      </Link>
-                    </div>
-                    <Input
-                      id="password"
-                      name="password"
-                      type="password"
-                      placeholder="Your password"
-                      required
-                      autoFocus
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
-                  <SubmitButton
-                    formAction={signIn}
-                    pendingText="Signing in..."
-                    disabled={!passwordFormValid}
-                  >
-                    Sign In
-                  </SubmitButton>
-                </form>
-              )}
-
-              {hasPassword && (
-                <div className="flex items-center gap-4">
-                  <Separator className="flex-1" />
-                  <span className="text-xs text-muted-foreground">or</span>
-                  <Separator className="flex-1" />
-                </div>
-              )}
-
               <Button
-                variant={hasPassword ? "outline" : "default"}
+                variant="outline"
                 onClick={handleSendMagicLink}
                 disabled={sendingMagicLink}
               >
-                {sendingMagicLink
-                  ? "Sending..."
-                  : "Send magic link"}
+                {sendingMagicLink ? "Sending..." : "Send magic link"}
               </Button>
 
               <p className="text-center text-sm text-muted-foreground">
@@ -251,7 +180,7 @@ function LoginForm() {
                 </span>
                 .
               </p>
-              <Button variant="outline" onClick={handleChangeEmail}>
+              <Button variant="outline" onClick={handleUseDifferentEmail}>
                 Use a different email
               </Button>
             </div>

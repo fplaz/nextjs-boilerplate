@@ -2,7 +2,7 @@
 # https://supabase.com/docs/guides/local-development/cli/config
 # A string used to distinguish different Supabase projects on the same host. Defaults to the
 # working directory name when running `supabase init`.
-project_id = "qr-coder"
+project_id = "boilerplate"
 
 [api]
 enabled = true
@@ -55,11 +55,11 @@ max_client_conn = 100
 enabled = true
 # Specifies an ordered list of schema files that describe your database.
 # Supports glob patterns relative to supabase directory: "./schemas/*.sql"
-schema_paths = []
+schema_paths = ["./schemas/*.sql"]
 
 [db.seed]
 # If enabled, seeds the database after migrations during a db reset.
-enabled = true
+enabled = false
 # Specifies an ordered list of seed files to load during db reset.
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
 sql_paths = ["./seed.sql"]
@@ -107,20 +107,17 @@ enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
 file_size_limit = "50MiB"
 
-[storage.buckets.qr-icons]
-public = false
-file_size_limit = "2MiB"
-allowed_mime_types = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"]
+# Uncomment to configure local storage buckets
+# [storage.buckets.images]
+# public = false
+# file_size_limit = "50MiB"
+# allowed_mime_types = ["image/png", "image/jpeg"]
+# objects_path = "./images"
 
-[storage.buckets.qr-pdfs]
-public = false
-file_size_limit = "10MiB"
-allowed_mime_types = ["application/pdf"]
-
-[storage.buckets.account-logos]
-public = false
+[storage.buckets.workspace-logos]
+public = true
 file_size_limit = "2MiB"
-allowed_mime_types = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"]
+allowed_mime_types = ["image/png", "image/jpeg"]
 
 # Allow connections via S3 compatible clients
 [storage.s3_protocol]

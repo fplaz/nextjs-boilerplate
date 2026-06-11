@@ -19,6 +19,7 @@ export const workspaceRow = z.object({
   owner_user_id: z.string().uuid(),
   billing_owner_user_id: z.string().uuid().nullable(),
   status: workspaceStatus,
+  logo_path: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
 });
@@ -101,6 +102,52 @@ export const removeWorkspaceMemberInput = z.object({
 export type RemoveWorkspaceMemberInput = z.infer<
   typeof removeWorkspaceMemberInput
 >;
+
+export const updateWorkspaceNameInput = z.object({
+  workspaceId: z.string().uuid(),
+  actorUserId: z.string().uuid(),
+  name: z.string().min(1, "Workspace name is required").max(100),
+});
+export type UpdateWorkspaceNameInput = z.infer<typeof updateWorkspaceNameInput>;
+
+export const WORKSPACE_LOGO_BUCKET = "workspace-logos";
+export const WORKSPACE_LOGO_MAX_BYTES = 2 * 1024 * 1024; // 2 MB
+export const WORKSPACE_LOGO_ALLOWED_TYPES = [
+  "image/png",
+  "image/jpeg",
+] as const;
+const WORKSPACE_LOGO_EXTENSIONS: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+};
+
+export function extensionForLogoType(type: string): string | null {
+  return WORKSPACE_LOGO_EXTENSIONS[type] ?? null;
+}
+
+export const uploadWorkspaceLogoInput = z.object({
+  workspaceId: z.string().uuid(),
+  actorUserId: z.string().uuid(),
+  file: z
+    .instanceof(File, { message: "A logo file is required" })
+    .refine((file) => file.size > 0, "A logo file is required")
+    .refine(
+      (file) => file.size <= WORKSPACE_LOGO_MAX_BYTES,
+      "Logo must be 2 MB or smaller"
+    )
+    .refine(
+      (file) =>
+        (WORKSPACE_LOGO_ALLOWED_TYPES as readonly string[]).includes(file.type),
+      "Logo must be a PNG or JPEG image"
+    ),
+});
+export type UploadWorkspaceLogoInput = z.infer<typeof uploadWorkspaceLogoInput>;
+
+export const removeWorkspaceLogoInput = z.object({
+  workspaceId: z.string().uuid(),
+  actorUserId: z.string().uuid(),
+});
+export type RemoveWorkspaceLogoInput = z.infer<typeof removeWorkspaceLogoInput>;
 
 export const updateWorkspaceDefaultInput = z.object({
   userId: z.string().uuid(),

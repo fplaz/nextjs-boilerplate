@@ -1,10 +1,13 @@
 import { NavBar } from "@/components/nav-bar";
 import { TrialBanner } from "@/components/trial-banner";
 import { createClient } from "@/lib/supabase/server";
-import { userHasPassword, getUserRole } from "@/domain/auth/auth.service";
+import { getUserRole } from "@/domain/auth/auth.service";
 import { getWorkspaceBillingState } from "@/domain/subscriptions/subscriptions.service";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { resolveWorkspaceForUser } from "@/domain/workspaces/workspace.service";
+import {
+  getWorkspaceLogoUrl,
+  resolveWorkspaceForUser,
+} from "@/domain/workspaces/workspace.service";
 
 export default async function ProtectedLayout({
   children,
@@ -16,8 +19,6 @@ export default async function ProtectedLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const needsPassword = user ? !userHasPassword(user) : false;
-
   let isAdmin = false;
   if (user) {
     const roleResult = await getUserRole(supabase, user.id);
@@ -27,7 +28,12 @@ export default async function ProtectedLayout({
   let showTrialBanner = false;
   let trialEnd: string | null = null;
   let currentWorkspaceSlug: string | null = null;
-  let workspaces: Array<{ slug: string; name: string; role: string }> = [];
+  let workspaces: Array<{
+    slug: string;
+    name: string;
+    role: string;
+    logoUrl: string | null;
+  }> = [];
 
   if (user) {
     const adminClient = createAdminClient();
@@ -39,6 +45,7 @@ export default async function ProtectedLayout({
         slug: membership.workspace.slug,
         name: membership.workspace.name,
         role: membership.role,
+        logoUrl: getWorkspaceLogoUrl(supabase, membership.workspace.logo_path),
       }));
       const billingState = await getWorkspaceBillingState(
         supabase,
@@ -54,7 +61,6 @@ export default async function ProtectedLayout({
   return (
     <>
       <NavBar
-        needsPassword={needsPassword}
         isAdmin={isAdmin}
         userName={
           user

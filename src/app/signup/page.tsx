@@ -242,6 +242,8 @@ function SignUpForm() {
             </div>
             <Turnstile
               siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+              options={{ size: "flexible" }}
+              className="w-full"
               onSuccess={setTurnstileToken}
               onExpire={() => setTurnstileToken("")}
               onError={() => setTurnstileToken("")}

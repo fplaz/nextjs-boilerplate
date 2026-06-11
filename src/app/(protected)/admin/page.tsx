@@ -5,13 +5,11 @@ import { getUserRole } from "@/domain/auth/auth.service";
 import {
   getAllProfiles,
   getAllWorkspaces,
-  getAllTrials,
   getAllSubscriptions,
   getAllUsers,
 } from "@/domain/admin/admin.service";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UsersTable } from "./users-table";
-import { TrialsTable } from "./trials-table";
 import { SubscriptionsTable } from "./subscriptions-table";
 import { WorkspacesTable } from "./workspaces-table";
 
@@ -31,7 +29,6 @@ export default async function AdminPage() {
   const [
     profilesResult,
     workspacesResult,
-    trialsResult,
     subscriptionsResult,
     usersResult,
     membershipsResult,
@@ -39,7 +36,6 @@ export default async function AdminPage() {
     await Promise.all([
       getAllProfiles(adminClient),
       getAllWorkspaces(adminClient),
-      getAllTrials(adminClient),
       getAllSubscriptions(adminClient),
       getAllUsers(adminClient),
       adminClient
@@ -62,13 +58,6 @@ export default async function AdminPage() {
       .map((s) => [s.workspace_id, s.paddle_price_name ?? ""])
   );
 
-  const trialMap = new Map(
-    (trialsResult.data ?? []).map((t) => [
-      t.workspace_id,
-      { trial_status: t.status, trial_ends_at: t.ends_at },
-    ])
-  );
-
   const memberCountMap = new Map<string, number>();
   for (const membership of membershipsResult.data ?? []) {
     memberCountMap.set(
@@ -84,15 +73,6 @@ export default async function AdminPage() {
       workspaceMap.get(p.default_workspace_id ?? "")?.slug ?? "",
     subscription_name:
       subscriptionMap.get(p.default_workspace_id ?? "") ?? "",
-    trial_status: trialMap.get(p.default_workspace_id ?? "")?.trial_status ?? "",
-    trial_ends_at:
-      trialMap.get(p.default_workspace_id ?? "")?.trial_ends_at ?? "",
-  }));
-
-  const trials = (trialsResult.data ?? []).map((t) => ({
-    ...t,
-    workspace_name: workspaceMap.get(t.workspace_id)?.name ?? "",
-    workspace_slug: workspaceMap.get(t.workspace_id)?.slug ?? "",
   }));
 
   const subscriptions = (subscriptionsResult.data ?? []).map((s) => ({
@@ -118,7 +98,6 @@ export default async function AdminPage() {
           <TabsTrigger value="workspaces">
             Workspaces ({workspaces.length})
           </TabsTrigger>
-          <TabsTrigger value="trials">Trials ({trials.length})</TabsTrigger>
           <TabsTrigger value="subscriptions">
             Subscriptions ({subscriptions.length})
           </TabsTrigger>
@@ -128,9 +107,6 @@ export default async function AdminPage() {
         </TabsContent>
         <TabsContent value="workspaces">
           <WorkspacesTable workspaces={workspaces} />
-        </TabsContent>
-        <TabsContent value="trials">
-          <TrialsTable trials={trials} />
         </TabsContent>
         <TabsContent value="subscriptions">
           <SubscriptionsTable subscriptions={subscriptions} />
